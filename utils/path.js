@@ -1,0 +1,4 @@
+
+exports.parseQueryToFilePath(url) {
+    
+}
