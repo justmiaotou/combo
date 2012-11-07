@@ -1,7 +1,8 @@
 module.exports = {
-    basePath: './src',
-    alias: {
-        s: './static'
-    },
-    delimiter: ','
+    basePath: '',
+    alias: { },
+    delimiter: '',
+    error: {
+        PATH_ERROR: 1
+    }
 };
