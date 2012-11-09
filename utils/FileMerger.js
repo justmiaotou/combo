@@ -120,7 +120,6 @@ function FileMerger(option) {
                                     files[index].hasCompressed = true;
                                     proxy.emit('fileCompress');
                                 });
-                                
                             }
                         }
                     });

@@ -1,5 +1,4 @@
 var fs = require('fs'),
-    http = require('http'),
     url = require('url'),
     path = require('path'),
     config = require('./config'),
@@ -28,18 +27,3 @@ exports.handler = function(req, res) {
     res.writeHead(200);
     res.end('<h3>Combo Test</h3>');
 };
-
-var server = http.createServer(exports.handler);
-
-/*server.once('connection', function(stream) {
-    console.log('Once');
-});
-
-server.on('connection', function() {
-    console.log('Every Time');
-});
-server.on('connection', function() {
-    console.log('second Time');
-});*/
-
-server.listen(3000);
