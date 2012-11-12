@@ -1,5 +1,6 @@
 var fs = require('fs'),
     path = require('path'),
+    exec = require('child_process').exec,
     EventProxy = require('eventproxy');
 
 module.exports = FileMerger;
@@ -29,7 +30,12 @@ function FileMerger(option) {
             MERGE_FINISHED: 6,
             ERROR: 0
         },
+        MIMES = {
+            'js': 'application/javascript',
+            'css': 'text/css'
+        },
         status = null,
+        MIME = null,
         proxy = new EventProxy();
 
     var paths = option.paths || [],
@@ -44,17 +50,17 @@ function FileMerger(option) {
             if (typeof path == 'string') {
                 paths.push(path);
             } else {
-                console.log(path);
                 paths = paths.concat(path);
-                console.log(paths);
             }
         } else {
             //status = STATUS_FLAG.ERROR;
-            throw Error('File can not be added now.');
+            //throw Error('File can not be added now.');
         }
     };
 
-    this.compress = function() {};
+    this.compress = function() {
+        
+    };
 
     this.merge = function(toCompress, callback) {
         var _this = this;
@@ -62,6 +68,13 @@ function FileMerger(option) {
         if (typeof toCompress == 'function') {
             callback = toCompress;
             toCompress = false;
+        }
+
+        if (option.ext) {
+            this.MIME = MIMES[option.ext];
+        } else {
+            // 根据第一个文件的后缀决定文件类型
+            this.MIME = MIMES[paths[0].substring(paths[0].lastIndexOf('.') + 1)];
         }
 
         // 状态
@@ -77,7 +90,7 @@ function FileMerger(option) {
             callback(null, result);
         });
 
-        // 压缩
+        // 压缩 这里会压缩已经读取到内存的那些文件
         if (toCompress) {
             proxy.after('fileCompress', paths.length, function () {
                 proxy.emit('compressReady');
@@ -109,11 +122,11 @@ function FileMerger(option) {
                 (function(index) {
                     fs.readFile(paths[index], function(err, data) {
                         if (!err) {
-                            proxy.emit('fileRead');
                             files[index] = {
                                 hasCompressed: false,
                                 data: data // [object Buffer]
                             };
+                            // 压缩 这里压缩刚读取到内存的文件
                             if (toCompress) {
                                 _this.compress(files[index].data, function(err, data) {
                                     files[index].data = data;
@@ -121,6 +134,9 @@ function FileMerger(option) {
                                     proxy.emit('fileCompress');
                                 });
                             }
+                            proxy.emit('fileRead');
+                        } else {
+                            callback({ code: 404, msg: 'File not found'});
                         }
                     });
                 })(s);

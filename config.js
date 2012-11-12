@@ -1,5 +1,5 @@
 module.exports = {
     basePath: '',
-    alias: { },
+    alias: { u: './utils/' },
     delimiter: ''
 };

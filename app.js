@@ -2,25 +2,22 @@ var http = require('http'),
     main = require('./index'),
     config = require('./config');
 
-var server = http.createServer(main.handler);
+var port = 8888; // default
 
-/*server.once('connection', function(stream) {
-    console.log('Once');
-});
-
-server.on('connection', function() {
-    console.log('Every Time');
-});
-server.on('connection', function() {
-    console.log('second Time');
-});*/
-
-var port = 3333; // default
-
-if (process.argv.length > 1) {
+if (process.argv.length > 2) {
     port = process.argv[2];
 }
 
-console.log(process.argv);
+// 统一处理异常
+process.on('uncaughtException', function(err) {
+    if (err.res) {
+        err.res.writeHead(err.code, {
+            'Content-Type': 'text/html'
+        });
+        err.res.end('<h1 style="font-size:50px;">' + err.code + '</h1><p style="font-size:30px">' + err.msg + '</p>');
+    }
+});
 
-server.listen(port);
+console.log('Combo Service Start(port:' + port + ')');
+
+http.createServer(main.handler).listen(port);
