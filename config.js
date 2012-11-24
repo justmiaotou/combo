@@ -1,5 +1,8 @@
+/**
+ * Default configuration
+ */
 module.exports = {
-    basePath: '',
-    alias: { u: './utils/' },
-    delimiter: ''
+    basePath: './files/',
+    alias: { },
+    delimiter: ','
 };

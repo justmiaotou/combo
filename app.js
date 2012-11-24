@@ -1,5 +1,5 @@
 var http = require('http'),
-    main = require('./index'),
+    Combo = require('./index'),
     config = require('./config');
 
 var port = 8888; // default
@@ -10,6 +10,7 @@ if (process.argv.length > 2) {
 
 // 统一处理异常
 process.on('uncaughtException', function(err) {
+    console.error(err);
     if (err.res) {
         err.res.writeHead(err.code, {
             'Content-Type': 'text/html'
@@ -20,4 +21,4 @@ process.on('uncaughtException', function(err) {
 
 console.log('Combo Service Start(port:' + port + ')');
 
-http.createServer(main.handler).listen(port);
+http.createServer((new Combo()).handler).listen(port);
