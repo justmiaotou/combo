@@ -1,6 +1,7 @@
 var fs = require('fs'),
     path = require('path'),
     exec = require('child_process').exec,
+    compressor = require('yuicompressor'),
     EventProxy = require('eventproxy');
 
 module.exports = FileMerger;
@@ -35,12 +36,12 @@ function FileMerger(option) {
             'css': 'text/css'
         },
         status = null,
-        MIME = null,
         proxy = new EventProxy();
 
     var paths = option.paths || [],
         files = []; // [{hasCompressed: Boolean, data: Buffer}]
 
+    this.MIME = null;
     this.getStatus = function() {
         return status;
     };
@@ -58,23 +59,18 @@ function FileMerger(option) {
         }
     };
 
-    this.compress = function() {
-        
-    };
-
+    var _this = this;
     this.merge = function(toCompress, callback) {
-        var _this = this;
-
         if (typeof toCompress == 'function') {
             callback = toCompress;
-            toCompress = false;
+            toCompress = option.compress;
         }
 
         if (option.ext) {
-            this.MIME = MIMES[option.ext];
+            _this.MIME = MIMES[option.ext];
         } else {
             // 根据第一个文件的后缀决定文件类型
-            this.MIME = MIMES[paths[0].substring(paths[0].lastIndexOf('.') + 1)];
+            _this.MIME = MIMES[paths[0].substring(paths[0].lastIndexOf('.') + 1)];
         }
 
         // 状态
@@ -101,7 +97,7 @@ function FileMerger(option) {
                     proxy.emit('fileCompress');
                 } else {
                     (function(index) {
-                        _this.compress(files[index].data, function(err, data) {
+                        compressor.compress(files[index].data.toString(), function(err, data) {
                             files[index].data = data;
                             files[index].hasCompressed = true;
                             proxy.emit('fileCompress');
@@ -128,7 +124,7 @@ function FileMerger(option) {
                             };
                             // 压缩 这里压缩刚读取到内存的文件
                             if (toCompress) {
-                                _this.compress(files[index].data, function(err, data) {
+                                compressor.compress(files[index].data.toString(), function(err, data) {
                                     files[index].data = data;
                                     files[index].hasCompressed = true;
                                     proxy.emit('fileCompress');

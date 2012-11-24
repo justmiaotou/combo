@@ -2,7 +2,8 @@
  * Default configuration
  */
 module.exports = {
-    basePath: './files/',
+    basePath: './utils/',
     alias: { },
-    delimiter: ','
+    delimiter: ',',
+    compress: true
 };

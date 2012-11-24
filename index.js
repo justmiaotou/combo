@@ -10,9 +10,11 @@ module.exports = Combo;
 function Combo(option) {
     // 配置信息初始化
     if (option) {
-        option.delimiter && (config.delimiter = option.delimiter);
-        option.basePath && (config.basePath = option.basePath);
-        option.alias && (config.alias = option.alias);
+        for (var i in option) {
+            if (i in config) {
+                config[i] = option[i];
+            }
+        }
     }
 
     this.handler = function(req, res) {
@@ -28,7 +30,8 @@ function Combo(option) {
         }
 
         var merger = new FileMerger({
-            paths: pathArr
+            paths: pathArr,
+            compress: config.compress
         });
 
         merger.merge(function(err, result) {
