@@ -1,6 +1,5 @@
 var path = require('path'),
-    config = require('../config'),
-    error = require('./static').error;
+    config = require('../config');
 
 exports.getFilePathArr = function(query) {
     var pathArr =  null;
