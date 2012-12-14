@@ -2,6 +2,7 @@ var fs = require('fs'),
     path = require('path'),
     exec = require('child_process').exec,
     compressor = require('yuicompressor'),
+    EventListener = 
     EventProxy = require('eventproxy');
 
 module.exports = FileMerger;
@@ -77,17 +78,27 @@ function FileMerger(option) {
         status = STATUS_FLAG.MERGING;
 
         // 文件读取、压缩完毕，可以进行合并
-        proxy.assign('filesReady', 'compressReady', function() {
+        proxy.on('filesReady', function() {
             var result = '';
             for (var i = 0, l = files.length; i < l; ++i) {
                 result += files[i].data.toString();
             }
 
-            callback(null, result);
+            if (toCompress) {
+                proxy.emit('toCompress', result);
+            } else {
+                callback(null, result);
+            }
+        });
+
+        proxy.on('toCompress', function(content) {
+            compressor.compress(content, function(err, data) {
+                callback(null, data);
+            });
         });
 
         // 压缩 这里会压缩已经读取到内存的那些文件
-        if (toCompress) {
+        /*if (toCompress) {
             proxy.after('fileCompress', paths.length, function () {
                 proxy.emit('compressReady');
             });
@@ -107,7 +118,7 @@ function FileMerger(option) {
             }
         } else {
             proxy.emit('compressReady');
-        }
+        }*/
 
         // 文件全部读取到内存，并触发filesReady事件
         if (files.length != paths.length) {
@@ -123,13 +134,13 @@ function FileMerger(option) {
                                 data: data // [object Buffer]
                             };
                             // 压缩 这里压缩刚读取到内存的文件
-                            if (toCompress) {
+                            /*if (toCompress) {
                                 compressor.compress(files[index].data.toString(), function(err, data) {
                                     files[index].data = data;
                                     files[index].hasCompressed = true;
                                     proxy.emit('fileCompress');
                                 });
-                            }
+                            }*/
                             proxy.emit('fileRead');
                         } else {
                             callback({ code: 404, msg: 'File not found'});
