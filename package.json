@@ -3,7 +3,7 @@
   , "author": "Memo Zhou"
   , "version": "0.0.1"
   , "private": true
-  , "main": "batch.js"
+  , "main": "combo.js"
   , "dependencies": {
       "eventproxy": ""
     , "yuicompressor": ""

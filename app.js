@@ -1,5 +1,5 @@
 var http = require('http'),
-    Combo = require('./index'),
+    Combo = require('./combo'),
     config = require('./config');
 
 var port = 8888; // default

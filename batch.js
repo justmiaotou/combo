@@ -4,8 +4,6 @@ var fs = require('fs'),
     batchConfig = require('./batch-config'),
     FileMerger = require('./utils/FileMerger'),
     pathUtil = require('./utils/path-util'),
-    fileDep = batchConfig.fileDep,
-    basePath = batchConfig.basePath,
     dirStructure = batchConfig.dirStructure;
 
 // 配置compressor
@@ -34,21 +32,13 @@ function build(target, p) {
 }
 
 function compress(mod, fileName, des) {
-    var deps = getDepInSeq(mod),
-        depUriArr = [],
-        uri,
-        pathArr,
+    var pathArr,
         merger;
-    for (var i = 0, l = deps.length; i < l; ++i) {
-        uri = fileDep[deps[i]];
-        isArray(uri) && (uri = uri[0]);
-        !!uri && depUriArr.push(uri);
-    }
-    pathArr = pathUtil.getFilePathArr(depUriArr.join(','));
+    pathArr = pathUtil.getFilePathArr('m:' + mod);
     merger = new FileMerger({
         paths: pathArr,
     });
-    console.log('==> 开始压缩' + fileName + '.js，依赖：' + deps.toString());
+    console.log('==> 开始压缩' + fileName + '.js');
     merger.merge(function(err, result, debugResult) {
         if (err) {
             console.error(err);
@@ -78,75 +68,6 @@ function compress(mod, fileName, des) {
     });
 }
 
-/**
- * 获得模块依赖数组
- * 优先级越高序号越小
- */
-function getDepInSeq(mod) {
-    var depTree = getDepTree(mod),
-        arrSort = [],
-        level,
-        result = [];
-    for (var i in depTree) {
-        level = depTree[i].level - 1;
-        arrSort[level] || (arrSort[level] = []);
-        arrSort[level].push(i);
-    }
-    for (var l = arrSort.length - 1; l >= 0; l--) {
-        result = result.concat(arrSort[l]);
-    }
-    return result;
-}
-
-/**
- * 1、根节点，设置level为1
- * 2、进入下个节点，如果之前已经访问过该节点且节点level比过来的节点level小，则重设level为过来节点level加1；没访问过，则直接过来节点level加1
- *  root = {
- *      mod1Name: {
- *          level: 1,
- *          next: ['mod2Name', 'mod3Name']
- *      },
- *      mod2Name: {
- *          level: 2
- *      },
- *      mod3Name: {
- *          level: 2
- *      }
- *  }
- */
-function getDepTree(mod, root, level) {
-    var chain = fileDep[mod];
-    if (!chain) {
-        console.error('ERROR: module "' + mod + '" not found');
-        return;
-    }
-    root = root || {};
-    level = level || 1;
-    // 如果该模块之前已访问过，则视情况调整其level，并递归调整其之后的节点
-    if (root[mod] && root[mod].level < level) {
-        root[mod].level = level;
-        if (root[mod].next) {
-            for (var i = 0, l = root[mod].next.length; i < l; ++i) {
-                getDepTree(root[mod].next[i], root, level + 1);
-            }
-        }
-    } else {
-        root[mod] = {
-            level: level
-        };
-        if (isArray(chain)) {
-            root[mod].next = chain.slice(1);
-            for (var i = 0, l = root[mod].next.length; i < l; ++i) {
-                getDepTree(root[mod].next[i], root, level + 1);
-            }
-        }
-    }
-    return root;
-}
-
-function isArray(obj) {
-    return Object.prototype.toString.call(obj) === '[object Array]';
-}
 function isObject(obj) {
     return Object.prototype.toString.call(obj) === '[object Object]';
 }
