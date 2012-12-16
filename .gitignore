@@ -1,3 +1,4 @@
 node_modules/
 *.swp
 *.swo
+batch-config.js

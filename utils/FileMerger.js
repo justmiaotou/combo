@@ -2,7 +2,7 @@ var fs = require('fs'),
     path = require('path'),
     exec = require('child_process').exec,
     compressor = require('yuicompressor'),
-    EventListener = 
+    config = require('../config'),
     EventProxy = require('eventproxy');
 
 module.exports = FileMerger;
@@ -64,7 +64,7 @@ function FileMerger(option) {
     this.merge = function(toCompress, callback) {
         if (typeof toCompress == 'function') {
             callback = toCompress;
-            toCompress = option.compress;
+            toCompress = typeof option.compress !== 'undefined' ? option.compress : config.compress;
         }
 
         if (option.ext) {
@@ -93,32 +93,9 @@ function FileMerger(option) {
 
         proxy.on('toCompress', function(content) {
             compressor.compress(content, function(err, data) {
-                callback(null, data);
+                callback(null, data, content);
             });
         });
-
-        // 压缩 这里会压缩已经读取到内存的那些文件
-        /*if (toCompress) {
-            proxy.after('fileCompress', paths.length, function () {
-                proxy.emit('compressReady');
-            });
-
-            for (var i in files) {
-                if (files[i].hasCompressed) {
-                    proxy.emit('fileCompress');
-                } else {
-                    (function(index) {
-                        compressor.compress(files[index].data.toString(), function(err, data) {
-                            files[index].data = data;
-                            files[index].hasCompressed = true;
-                            proxy.emit('fileCompress');
-                        });
-                    })(i);
-                }
-            }
-        } else {
-            proxy.emit('compressReady');
-        }*/
 
         // 文件全部读取到内存，并触发filesReady事件
         if (files.length != paths.length) {
@@ -133,14 +110,6 @@ function FileMerger(option) {
                                 hasCompressed: false,
                                 data: data // [object Buffer]
                             };
-                            // 压缩 这里压缩刚读取到内存的文件
-                            /*if (toCompress) {
-                                compressor.compress(files[index].data.toString(), function(err, data) {
-                                    files[index].data = data;
-                                    files[index].hasCompressed = true;
-                                    proxy.emit('fileCompress');
-                                });
-                            }*/
                             proxy.emit('fileRead');
                         } else {
                             callback({ code: 404, msg: 'File not found'});

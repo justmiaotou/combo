@@ -1,82 +1,39 @@
 var fs = require('fs'),
+    path = require('path'),
     config = require('./config'),
+    batchConfig = require('./batch-config'),
     FileMerger = require('./utils/FileMerger'),
     pathUtil = require('./utils/path-util'),
-    fileDep,
-    dirStructure;
+    fileDep = batchConfig.fileDep,
+    basePath = batchConfig.basePath,
+    dirStructure = batchConfig.dirStructure;
 
-var LIB_PATH = 'E:\\svn\\FE\\xm\\faxmail\\electronic-signature\\js\\',
-    DES_PATH = '';
-
-config.alias = {
-    'q': LIB_PATH + 'qunit',
-    'b': LIB_PATH + 'base',
-    'c': LIB_PATH + 'core',
-    'p': LIB_PATH + 'pages',
-    'w': LIB_PATH + 'widget',
-    'm': LIB_PATH + 'modules'
-};
-config.compress = true;
-
-// 文件路径极其依赖
-// 若值为数组，则第一个元素为路径，之后的元素为依赖
-fileDep = {
-    /* ============ core ===========
-     *  此部分模块页面默认加载，无需声明为其它模块的依赖
-     */
-    'core': [
-        '',
-        'seajs', 'sizzle', 'underscore', 'util', 'event', 'dom', 'ajax'
-    ],
-    'seajs': 'a:c/core-debug/sea.js',
-    'sizzle': 'a:c/core-debug/sizzle.js',
-    'underscore': 'a:c/core-debug/underscore.js',
-    'util': 'a:c/util.js',
-    'event': 'a:c/event.js',
-    'dom': 'a:c/dom.js',
-    'ajax': 'a:c/ajax.js',
-    /* ============ widget =========== */
-    'mask': 'a:w/mask.js',
-    'placeholder': 'a:w/placeholder.js',
-    'fileupload': 'a:w/fileupload.js',
-    'pop': [
-        'a:w/pop.js',
-        'mask'
-    ],
-    /* ============ page:efax =========== */
-    'efax-send': [
-        'a:p/efax/send.js', 
-        'efax-helper-sign-pops'
-    ],
-    'efax-setting': [
-        'a:p/efax/setting.js', 
-        'efax-helper-sign-pops'
-    ],
-    'efax-sign-setting': [
-        'a:p/efax/sign-setting.js', 
-        'efax-helper-sign-pops'
-    ],
-    'efax-helper-sign-pops': [
-        'a:p/efax/helper/sign-pops.js',
-        'pop', 'fileupload', 'placeholder'
-    ]
-};
-
-// 目录结构
-// 值为数组或字符串，则键为文件名，值即为其依赖的模块
-// 值为字面量对象，则键为目录名
-dirStructure = {
-    'core': 'core',
-    'efax': {
-        'send': 'efax-send',
-        'sign-setting': 'efax-sign-setting',
-        'setting': 'efax-setting'
+// 配置compressor
+for (var i in batchConfig.compressorConfig) {
+    if (i in config) {
+        config[i] = batchConfig.compressorConfig[i];
     }
-};
+}
 
-compress('core', 'd:\\');
+build(dirStructure, batchConfig.DES_PATH);
 
-function compress(mod, des) {
+function build(target, p) {
+    if (!fs.existsSync(p)) {
+        fs.mkdirSync(p);
+    }
+    if (!fs.existsSync(path.resolve(p, 'debug'))) {
+        fs.mkdirSync(path.resolve(p, 'debug')); // 保存debug版本的目录
+    }
+    for (var key in target) {
+        if (isObject(target[key])) {
+            build(target[key], path.resolve(p, key));
+        } else {
+            compress(target[key], key, p);
+        }
+    }
+}
+
+function compress(mod, fileName, des) {
     var deps = getDepInSeq(mod),
         depUriArr = [],
         uri,
@@ -90,19 +47,28 @@ function compress(mod, des) {
     pathArr = pathUtil.getFilePathArr(depUriArr.join(','));
     merger = new FileMerger({
         paths: pathArr,
-        compress: true
     });
-    merger.merge(function(err, result) {
+    console.log('==> 开始压缩' + fileName + '.js，依赖：' + deps.toString());
+    merger.merge(function(err, result, debugResult) {
         if (err) {
             console.error(err);
         }
         fs.exists(des, function(exists) {
             if (exists) {
-                fs.writeFile(des + '/' + mod + '.js', result, 'utf-8', function (err) {
+                // 压缩版
+                fs.writeFile(path.resolve(des , fileName + '.js'), result, 'utf-8', function (err) {
                     if (err) {
                         console.error(err);
                     } else {
-                        console.log('==> ' + des + '/' + mod + '.js 输出完成');
+                        console.log('==> ' + path.resolve(des, fileName) + '.js 输出完成');
+                    }
+                });
+                // debug版，即合并非压缩版
+                fs.writeFile(path.resolve(des, 'debug', fileName + '.js'), debugResult, 'utf-8', function(err) {
+                    if (err) {
+                        console.error(err);
+                    } else {
+                        console.log('==> ' + path.resolve(des, 'debug', fileName) + '.js 输出完成');
                     }
                 });
             } else {
@@ -180,4 +146,7 @@ function getDepTree(mod, root, level) {
 
 function isArray(obj) {
     return Object.prototype.toString.call(obj) === '[object Array]';
+}
+function isObject(obj) {
+    return Object.prototype.toString.call(obj) === '[object Object]';
 }
