@@ -1,3 +1,5 @@
+'use strict';
+
 var fs = require('fs'),
     url = require('url'),
     path = require('path'),
@@ -18,7 +20,7 @@ function Combo(option) {
     }
 
     this.handler = function(req, res) {
-        var query = url.parse(req.url, true).query;
+        var query = url.parse(decodeURIComponent(req.url), true).query;
 
         if (!query.path) {
             throw { res: res, code: 400, msg: '"path" argument is needed' };
