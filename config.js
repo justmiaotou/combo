@@ -5,5 +5,6 @@ module.exports = {
     basePath: './utils/',
     alias: { },
     delimiter: ',',
-    compress: true
+    compress: true,
+    debug: false
 };

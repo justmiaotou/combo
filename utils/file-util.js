@@ -1,10 +1,16 @@
 var path = require('path'),
     config = require('../config'),
     batchConfig = require('../batch-config'),
+    fs = require('fs'),
+    debug = require('./debug'),
     fileDep = batchConfig.fileDep,
     basePath = batchConfig.basePath;
 
-exports.getFilePathArr = getFilePathArr;
+module.exports = {
+    getFilePathArr: getFilePathArr,
+    getFilePath: getFilePath,
+    rmdirSync: rmdirSync
+}
 
 function getFilePathArr(query) {
     var pathArr =  null;
@@ -87,7 +93,7 @@ function getDepInSeq(mod) {
 function getDepTree(mod, root, level) {
     var chain = fileDep[mod];
     if (!chain) {
-        console.error('ERROR: module "' + mod + '" not found');
+        debug.error('ERROR: module "' + mod + '" not found');
         return;
     }
     root = root || {};
@@ -114,6 +120,9 @@ function getDepTree(mod, root, level) {
     return root;
 }
 
+/**
+ * [1, 2, [3, [4, 5], 6], 7] => [1, 2, 3, 4, 5, 6, 7]
+ */
 function flatten(arr) {
     var tmp = [];
     arr.forEach(function(item) {
@@ -124,4 +133,55 @@ function flatten(arr) {
         }
     });
     return tmp;
+}
+
+/**
+ * 递归删除文件夹及其子文件夹内的所有内容
+ */
+function rmdirSync(uri, cb) {
+    try {
+        var stat = fs.statSync(uri),
+            files;
+
+        if (stat.isDirectory()) {
+            files = fs.readdirSync(uri);
+            files.forEach(function(item) {
+                var subUri = path.resolve(uri, item),
+                    stat = fs.statSync(subUri);
+                if (stat.isFile()) {
+                    fs.unlinkSync(subUri);
+                    debug.log('[file]: ' + subUri + ' has been removed');
+                } else if (stat.isDirectory()) {
+                    rmdirSync(subUri);
+                }
+            });
+            fs.rmdirSync(uri);
+        }
+
+        typeof cb == 'function' && cb();
+
+        debug.log('[directory]: ' + uri + ' has been removed');
+    } catch(e) {
+        // 若uri不存在，statSync将出错
+        if (e.code == 'ENOENT') {
+            typeof cb == 'function' && cb();
+        }
+    }
+}
+
+/**
+ * 获得uri的完整路径，兼容'a:'语法
+ */
+function getFilePath(uri) {
+    var divider = uri.indexOf('/');
+    if (uri.substring(0, 2) == 'a:') {
+        var alias = config.alias[uri.substring(2, divider)];
+        // 不能根路径，且alias路径必须存在
+        if (divider < 3 || !alias) {
+            throw Error('Alias path is invalid:' + uri);
+        }
+        return path.resolve(alias, uri.substring(divider + 1));
+    } else {
+        return uri;
+    }
 }

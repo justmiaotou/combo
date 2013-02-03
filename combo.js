@@ -5,7 +5,7 @@ var fs = require('fs'),
     path = require('path'),
     config = require('./config'),
     FileMerger = require('./utils/FileMerger'),
-    pathUtil = require('./utils/path-util');
+    pathUtil = require('./utils/file-util');
 
 module.exports = Combo;
 
